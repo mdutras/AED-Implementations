@@ -21,6 +21,7 @@ class pagina:
 class avB:
     altura = 0
     start = None
+
     def __init__(self, ordem):
         self.ordem = ordem
         self.start = pagina(ordem)
@@ -37,7 +38,7 @@ class avB:
         ant = aux
         if(not self.isEmpty()):
             ind_valor = 0;
-            while(aux != None):
+            while(aux != None and not found):
                 if(aux.content[ind_valor].valor < value):
                     ind_valor += 1
                 elif(aux.content[ind_valor].valor > value):
@@ -45,6 +46,7 @@ class avB:
                         ant = aux
                         aux = aux.content[ind_valor].entrada
                     else:
+                        ant = aux
                         aux = aux.content[ind_valor - 1].ponteiro
                         ind_valor = 0
                 else:
@@ -52,6 +54,7 @@ class avB:
                 if aux !=  None and ind_valor >= len(aux.content):
                     ant = aux
                     aux = aux.content[ind_valor - 1].ponteiro
+                    ind_valor = 0
         return found, ant, aux
 
     def cisao(self, pag, pag_ant):
@@ -67,6 +70,7 @@ class avB:
             pag.entrada = nova_pag_esq
             novo_elem.ponteiro = nova_pag_dir
             pag.content = [novo_elem]
+            self.altura += 1
         else:
             nova_pag = pagina(self.ordem)
             nova_pag.content = a[:]
@@ -81,7 +85,7 @@ class avB:
         ant = aux
         i = 0
         while aux != alvo:
-            if aux.content[i].valor < value:
+            if aux.content[i].valor < alvo.content[0].valor:
                 i += 1
             else:
                 if i == 0:
@@ -91,11 +95,11 @@ class avB:
                     ant = aux
                     aux = aux.content[i].ponteiro
                     i = 0
-            if i > len(aux.content):
+            if i >= len(aux.content):
                 ant = aux
                 aux = aux.content[ind_valor - 1].ponteiro
                 i = 0
-        return aux, ant
+        return ant, aux
 
     def add(self, value):
         [found, ant, aux] = self.busca(value)
@@ -114,4 +118,85 @@ class avB:
                     [aux, ant] = self.search(ant)
                     self.cisao(aux, ant)
 
+    def remove(self, value):
+        [found, ant, aux] = self.busca(value)
+        if(not found):
+            print("O elemento não pertence à essa árvore")
+        else:
+            i = 0
+            while(i < len(aux.content) - 1 and aux.content[i].valor != value):
+                i += 1
+            if(aux.entrada != None):
+                anchor = aux
+                u = i
+                ant = aux
+                aux = aux.content[i].ponteiro
+                while(aux.entrada == None):
+                    ant = aux
+                    aux = aux.entrada
+                i = 0
+                anchor.content[u].valor = aux.content[i].valor
+            aux.content.pop(i)
+            while(len(aux.content) < self.ordem):
+                i = 0
+                while(i < len(ant.content) - 1 and ant.content[i].ponteiro != aux):
+                    i += 1
+                if(i == 0):
+                    j = 0
+                    elems = ant.entrada.content + aux.content
+                else:
+                    j =  i - 1
+                    elems = ant.content[j].ponteiro.content + aux.content
+                k = 0
+                while(k < len(elems) - 1 and elems[k].valor < ant.content[i].valor):
+                    k += 1
+                elems.insert(k, ant.content[i])
+                elems[k].ponteiro = aux.entrada
+                if(len(elems) >= 2*self.ordem and ant != self.start):
+                    # redistribuicao
+                    meio = int(len(elems)/2)
+                    a = elems[0:meio]
+                    b = elems[meio+1:len(elems)]
+                    ant.content[i].valor = elems
+                    if(i == 0):
+                        ant.entrada = a
+                        ant.content[i].ponteiro = b
+                    else:
+                        ant.content[j].ponteiro = a
+                        ant.content[i].ponteiro = b
+                else:
+                    # concatenacao()
+                    if(ant == self.start):
+                        ant.entrada = ant.entrada.entrada if i==0 else ant.content[j].ponteiro.entrada
+                        ant.content = elems
+                        self.altura -= 1
+                    else:
+                        ant.content.pop(i)
+                        if(i == 0):
+                            ant.entrada = elems
+                        else:
+                            ant.content[j].ponteiro = elems
+                [ant, aux] = self.search(ant)
 
+    def print_tree(self):
+        heap = []
+        for i in range(self.altura + 1):
+            heap.append([])
+        self.count_tree(self.start, heap, 0)
+        i = 0
+        for h in heap:
+            print(f"{i}: ", end="")
+            for k in h:
+                print(k, end=" ")
+            print()
+            i+=1
+
+    def count_tree(self, page, heap, altura):
+        if page != None:
+            novo = []
+            for i in page.content:
+                novo.append(i.valor)
+            heap[altura].append(novo)
+            self.count_tree(page.entrada, heap, altura + 1)
+            for i in page.content:
+                self.count_tree(i.ponteiro, heap, altura + 1)
